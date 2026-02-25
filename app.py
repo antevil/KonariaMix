@@ -9,6 +9,17 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+def hira_to_kata(text):
+    result = ""
+    for char in text:
+        code = ord(char)
+        # ひらがな範囲
+        if 0x3041 <= code <= 0x3096:
+            result += chr(code + 0x60)
+        else:
+            result += char
+    return result
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -20,6 +31,8 @@ def api_search():
     if not raw:
         return jsonify({"foods": [], "drugs": [], "not_found": []})
 
+    raw = hira_to_kata(raw)  # ★ひらがな→カタカナに正規化
+    
     tokens = re.split(r"[\s,、，]+", raw)
     tokens = [t for t in tokens if t]
 
