@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>粉薬 × 飲食物チェック</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+    <div class="p-4 max-w-xl mx-auto">
+        <h1 class="text-xl font-bold text-center mb-4">粉薬 × 飲食物チェック</h1>
+
+        <div class="bg-white p-4 rounded-lg shadow mb-4">
+            <label for="drugInput" class="block mb-2 text-sm text-gray-700">
+                薬の名前をスペースまたは改行で区切って入力してください
+            </label>
+
+            <textarea id="drugInput" rows="3" class="w-full p-3 border rounded-lg shadow-sm"
+                placeholder="例）&#10;フェキソフェナジン細粒&#10;カロナール細粒"></textarea>
+
+            <div class="flex gap-2 mt-3">
+                <!-- form送信させないため type=button -->
+                <button id="searchBtn" type="button"
+                    class="flex-1 py-2 border rounded-lg shadow bg-gray-50 hover:bg-gray-100">
+                    判定する
+                </button>
+                <button id="clearBtn" type="button"
+                    class="py-2 px-4 border rounded-lg shadow bg-white hover:bg-gray-50">
+                    クリア
+                </button>
+            </div>
+
+            <p class="text-xs text-gray-500 mt-2">
+                ※ 入力中も自動で更新します（負荷軽減のため少し待ってから検索します）
+            </p>
+        </div>
+
+        <div id="message" class="mb-2 text-sm text-gray-700"></div>
+        <div class="bg-white p-3 rounded-lg shadow mb-3 text-sm">
+            <div class="font-semibold mb-2">見かた</div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <div><span class="text-green-700 font-bold">◎</span> 美味しい・混ぜてOK</div>
+                <div><span class="text-green-600 font-semibold">○</span> 混ぜてOK</div>
+                <div><span class="text-yellow-700 font-semibold">△</span> 安全だが美味しくない</div>
+                <div><span class="text-gray-400">－</span> データなし</div>
+                <div class="col-span-2"><span class="text-red-600 font-bold">×</span> 混ぜてはいけない</div>
+            </div>
+            <div class="mt-2 text-[11px] text-gray-600">
+                ※ 迷ったときは「水」を選び、心配なら薬剤師に相談してください。
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table id="resultTable" class="min-w-full bg-white rounded-lg shadow hidden">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const drugInput = document.getElementById("drugInput");
+        const searchBtn = document.getElementById("searchBtn");
+        const clearBtn = document.getElementById("clearBtn");
+        const message = document.getElementById("message");
+        const table = document.getElementById("resultTable");
+        const thead = document.getElementById("tableHead");
+        const tbody = document.getElementById("tableBody");
+
+        // 表示の初期化
+        function resetView() {
+            message.textContent = "";
+            thead.innerHTML = "";
+            tbody.innerHTML = "";
+            table.classList.add("hidden");
+        }
+
+        // ○△×の色（デザインは最後でOKなので最小限）
+        function styleFor(symbol) {
+            // 記号 → 見た目（色）＋短い言葉（保護者向け）
+            switch (symbol) {
+                case "◎":
+                    return { cls: "text-green-700 font-bold", label: "おいしい" };
+                case "〇":
+                    return { cls: "text-green-600 font-semibold", label: "OK" };
+                case "△":
+                    return { cls: "text-yellow-700 font-semibold", label: "苦手" };
+                case "×":
+                    return { cls: "text-red-600 font-bold", label: "NG" };
+                case "－":
+                case "-":
+                    return { cls: "text-gray-400", label: "不明" };
+                default:
+                    return { cls: "text-gray-400", label: "不明" };
+            }
+        }
+
+
+        // APIを叩いて表を描画
+        async function runSearch() {
+            const input = drugInput.value.trim();
+
+            resetView();
+
+            if (!input) {
+                message.textContent = "薬名を入力してください。";
+                return;
+            }
+
+            // ここが重要：パラメータ名は drugs
+            const url = `/api/search?drugs=${encodeURIComponent(input)}`;
+
+            let data;
+            try {
+                const res = await fetch(url, { cache: "no-store" });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                data = await res.json();
+            } catch (e) {
+                message.textContent = "検索に失敗しました。サーバーが起動しているか確認してください。";
+                return;
+            }
+
+            // 見つからなかった薬名
+            if (data.not_found && data.not_found.length > 0) {
+                message.textContent = `見つからなかった薬名: ${data.not_found.join(" / ")}`;
+            }
+
+            // 結果ゼロ
+            if (!data.drugs || data.drugs.length === 0) {
+                if (!message.textContent) message.textContent = "該当するデータがありません。";
+                return;
+            }
+
+            // ====== ここから「表描画」を反転版に置き換え ======
+
+            // ====== ここから「表描画」を反転版に置き換え ======
+
+            // ヘッダ行：左上は「飲食物 \\ 薬名」、右に薬名
+            const headerRow = document.createElement("tr");
+
+            const cornerTh = document.createElement("th");
+            cornerTh.className = "border px-2 py-2 text-xs bg-gray-50 whitespace-nowrap";
+            cornerTh.textContent = "飲食物 \\ 薬名";
+            headerRow.appendChild(cornerTh);
+
+            // 列：薬名
+            for (const drug of data.drugs) {
+                const th = document.createElement("th");
+                th.className = "border px-2 py-2 text-xs bg-gray-50 whitespace-nowrap";
+                th.textContent = drug.name;
+                headerRow.appendChild(th);
+            }
+
+            thead.appendChild(headerRow);
+
+            // 本文：飲食物ごとに1行
+            for (const food of data.foods) {
+                const tr = document.createElement("tr");
+
+                // 行見出し（飲食物名）
+                const foodTd = document.createElement("td");
+                foodTd.className = "border px-2 py-2 text-xs font-semibold whitespace-nowrap";
+                foodTd.textContent = food;
+                tr.appendChild(foodTd);
+
+                // 各薬のセル（その飲食物に対する判定）
+                for (const drug of data.drugs) {
+                    const td = document.createElement("td");
+                    td.className = "border px-2 py-2 text-center text-sm";
+
+                    const info = (drug.results && drug.results[food]) ? drug.results[food] : null;
+                    const symbol = info && info.result ? info.result : "－"; // データなしは － に統一
+
+                    const { cls, label } = styleFor(symbol);
+
+                    // 記号（大きめ）＋ラベル（小さめ）を縦に並べる
+                    td.innerHTML = `
+                        <div class="leading-tight ${cls}">
+                            <div class="text-lg">${symbol}</div>
+                            <div class="text-[10px] font-normal text-gray-600">${label}</div>
+                        </div>
+                    `;
+
+                    // noteがあるならタップ/ホバー用
+                    if (info && info.note) td.title = info.note;
+
+                    
+
+                    tr.appendChild(td);
+                }
+
+                tbody.appendChild(tr);
+            }
+
+            table.classList.remove("hidden");
+        }
+        // ====== ここまで ======
+
+
+        // クリックで検索
+        searchBtn.addEventListener("click", () => {
+            runSearch();
+        });
+
+        // クリア
+        clearBtn.addEventListener("click", () => {
+            drugInput.value = "";
+            resetView();
+            message.textContent = "クリアしました。";
+            drugInput.focus();
+        });
+
+        // 入力中も検索（デバウンス：打鍵のたびに叩きすぎない）
+        let timer = null;
+        drugInput.addEventListener("input", () => {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => {
+                // 空なら表示だけ整える
+                if (!drugInput.value.trim()) {
+                    resetView();
+                    return;
+                }
+                runSearch();
+            }, 350);
+        });
+    </script>
+</body>
+
+</html>
