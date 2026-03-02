@@ -18,7 +18,7 @@
             </label>
 
             <textarea id="drugInput" rows="3" class="w-full p-3 border rounded-lg shadow-sm"
-                placeholder="例）&#10;フェキソフェナジン細粒&#10;カロナール細粒"></textarea>
+                placeholder="例）&#10;タミフルドライシロップ&#10;カロナール細粒"></textarea>
 
             <div class="flex gap-2 mt-3">
                 <!-- form送信させないため type=button -->
@@ -48,7 +48,7 @@
                 <div class="col-span-2"><span class="text-red-600 font-bold">×</span> 混ぜてはいけない</div>
             </div>
             <div class="mt-2 text-[11px] text-gray-600">
-                ※ 迷ったときは「水」を選び、心配なら薬剤師に相談してください。
+                ※ 医師、または薬剤師から特別に指示があった場合はこの限りではありません。不安な場合は薬を受け取った薬局にご相談ください。
             </div>
         </div>
 
@@ -223,7 +223,7 @@
                     return;
                 }
                 runSearch();
-            }, 350);
+            }, 1000);
         });
     </script>
 </body>
