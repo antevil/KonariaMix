@@ -107,5 +107,9 @@ def api_search():
         "not_found": not_found
     })
 
+@app.route("/ping")
+def ping():
+    return "ok"
+
 if __name__ == "__main__":
     app.run(debug=True)
