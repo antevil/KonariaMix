@@ -6,13 +6,158 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>粉薬 × 飲食物チェック</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+
+        body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .print-only {
+            display: none;
+        }
+
+        @media print {
+            html,
+            body {
+                background: #fff !important;
+            }
+
+            body {
+                font-size: 10pt;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            .screen-shell {
+                max-width: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .print-card {
+                box-shadow: none !important;
+                border: 1px solid #cfcfcf !important;
+                border-radius: 0 !important;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .print-tight {
+                margin-bottom: 6px !important;
+            }
+
+            .table-wrap {
+                overflow: visible !important;
+            }
+
+            #message {
+                margin-bottom: 6px !important;
+                font-size: 8.5pt !important;
+                color: #222 !important;
+            }
+
+            #resultTable {
+                width: 100% !important;
+                min-width: 100% !important;
+                table-layout: fixed;
+                border-collapse: collapse !important;
+                display: table !important;
+                margin-top: 4px !important;
+            }
+
+            #resultTable th,
+            #resultTable td {
+                border: 1px solid #999 !important;
+                padding: 3px 4px !important;
+                vertical-align: middle;
+                word-break: break-word;
+            }
+
+            #resultTable th {
+                background: #f3f4f6 !important;
+                color: #111 !important;
+                font-size: 8.5pt !important;
+                line-height: 1.2 !important;
+            }
+
+            #resultTable td {
+                font-size: 8.5pt !important;
+                line-height: 1.15 !important;
+            }
+
+            #resultTable .food-name {
+                font-size: 8.5pt !important;
+                font-weight: 700 !important;
+                white-space: normal !important;
+            }
+
+            #resultTable .cell-symbol {
+                font-size: 13pt !important;
+                line-height: 1 !important;
+                font-weight: 700 !important;
+            }
+
+            #resultTable .cell-label {
+                font-size: 7pt !important;
+                line-height: 1.1 !important;
+                color: #444 !important;
+            }
+
+            .print-header {
+                border-bottom: 2px solid #222;
+                margin-bottom: 8px;
+                padding-bottom: 6px;
+            }
+
+            .print-meta {
+                font-size: 8pt;
+                color: #333;
+                margin-top: 4px;
+            }
+
+            .legend-grid {
+                display: grid !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 4px 10px !important;
+            }
+
+            .legend-grid div {
+                font-size: 8pt !important;
+            }
+
+            .patient-note {
+                font-size: 7.5pt !important;
+                line-height: 1.25 !important;
+            }
+        }
+    </style>
 </head>
 
-<body class="bg-gray-100">
-    <div class="p-4 max-w-xl mx-auto">
-        <h1 class="text-xl font-bold text-center mb-4">粉薬 × 飲食物チェック</h1>
+<body class="bg-gray-100 text-gray-900">
+    <div class="p-4 max-w-5xl mx-auto screen-shell">
+        <h1 class="text-xl font-bold text-center mb-4 no-print">ConaConaC 粉薬 × 飲食物チェック</h1>
 
-        <div class="bg-white p-4 rounded-lg shadow mb-4">
+        <!-- 印刷時のみ表示 -->
+        <div class="print-only print-header">
+            <div class="text-lg font-bold">粉薬と飲食物の組み合わせ表</div>
+            <div class="print-meta" id="printDate"></div>
+            <div class="print-meta" id="printDrugSummary"></div>
+        </div>
+
+        <!-- 入力エリア -->
+        <div class="bg-white p-4 rounded-lg shadow mb-4 print-card no-print">
             <label for="drugInput" class="block mb-2 text-sm text-gray-700">
                 薬の名前をスペースまたは改行で区切って入力してください
             </label>
@@ -20,15 +165,20 @@
             <textarea id="drugInput" rows="3" class="w-full p-3 border rounded-lg shadow-sm"
                 placeholder="例）&#10;タミフルドライシロップ&#10;カロナール細粒"></textarea>
 
-            <div class="flex gap-2 mt-3">
-                <!-- form送信させないため type=button -->
+            <div class="flex flex-wrap gap-2 mt-3">
                 <button id="searchBtn" type="button"
-                    class="flex-1 py-2 border rounded-lg shadow bg-gray-50 hover:bg-gray-100">
+                    class="flex-1 min-w-[120px] py-2 border rounded-lg shadow bg-gray-50 hover:bg-gray-100">
                     判定する
                 </button>
+
                 <button id="clearBtn" type="button"
                     class="py-2 px-4 border rounded-lg shadow bg-white hover:bg-gray-50">
                     クリア
+                </button>
+
+                <button id="printBtn" type="button"
+                    class="py-2 px-4 rounded-lg shadow bg-blue-600 text-white hover:bg-blue-700">
+                    印刷
                 </button>
             </div>
 
@@ -37,26 +187,47 @@
             </p>
         </div>
 
-        <div id="message" class="mb-2 text-sm text-gray-700"></div>
-        <div class="bg-white p-3 rounded-lg shadow mb-3 text-sm">
+        <!-- メッセージ -->
+        <div id="message" class="mb-2 text-sm text-gray-700 print-tight"></div>
+
+        <!-- 見かた -->
+        <div class="bg-white p-3 rounded-lg shadow mb-3 text-sm print-card print-tight">
             <div class="font-semibold mb-2">見かた</div>
-            <div class="grid grid-cols-2 gap-2 text-xs">
+
+            <div class="grid grid-cols-2 gap-2 text-xs no-print">
                 <div><span class="text-green-700 font-bold">◎</span> 美味しい・混ぜてOK</div>
-                <div><span class="text-green-600 font-semibold">○</span> 混ぜてOK</div>
-                <div><span class="text-yellow-700 font-semibold">△</span> 安全だが美味しくない</div>
+                <div><span class="text-green-600 font-semibold">〇</span> 混ぜてOK</div>
+                <div><span class="text-yellow-700 font-semibold">△</span> 美味しくない</div>
                 <div><span class="text-gray-400">－</span> データなし</div>
                 <div class="col-span-2"><span class="text-red-600 font-bold">×</span> 混ぜてはいけない</div>
             </div>
-            <div class="mt-2 text-[11px] text-gray-600">
+
+            <div class="print-only legend-grid">
+                <div><strong>◎</strong> 美味しい・混ぜてOK</div>
+                <div><strong>〇</strong> 混ぜてOK</div>
+                <div><strong>△</strong> 美味しくない</div>
+                <div><strong>×</strong> 混ぜてはいけない</div>
+                <div><strong>－</strong> データなし</div>
+            </div>
+
+            <div class="mt-2 text-[11px] text-gray-600 patient-note">
                 ※ 医師、または薬剤師から特別に指示があった場合はこの限りではありません。不安な場合は薬を受け取った薬局にご相談ください。
             </div>
         </div>
 
-        <div class="overflow-x-auto">
-            <table id="resultTable" class="min-w-full bg-white rounded-lg shadow hidden">
+        <!-- 結果 -->
+        <div class="table-wrap overflow-x-auto">
+            <table id="resultTable" class="min-w-full bg-white rounded-lg shadow hidden print-card">
                 <thead id="tableHead"></thead>
                 <tbody id="tableBody"></tbody>
             </table>
+        </div>
+
+        <div class="text-center mb-4 no-print">
+            <a href="/references"
+                class="text-sm text-blue-600 underline hover:text-blue-800">
+                参考文献
+            </a>
         </div>
     </div>
 
@@ -64,26 +235,31 @@
         const drugInput = document.getElementById("drugInput");
         const searchBtn = document.getElementById("searchBtn");
         const clearBtn = document.getElementById("clearBtn");
+        const printBtn = document.getElementById("printBtn");
         const message = document.getElementById("message");
         const table = document.getElementById("resultTable");
         const thead = document.getElementById("tableHead");
         const tbody = document.getElementById("tableBody");
+        const printDate = document.getElementById("printDate");
+        const printDrugSummary = document.getElementById("printDrugSummary");
 
-        // 表示の初期化
+        let lastResultData = null;
+
         function resetView() {
             message.textContent = "";
             thead.innerHTML = "";
             tbody.innerHTML = "";
             table.classList.add("hidden");
+            lastResultData = null;
+            updatePrintMeta(null);
         }
 
-        // ○△×の色（デザインは最後でOKなので最小限）
         function styleFor(symbol) {
-            // 記号 → 見た目（色）＋短い言葉（保護者向け）
             switch (symbol) {
                 case "◎":
                     return { cls: "text-green-700 font-bold", label: "おいしい" };
                 case "〇":
+                case "○":
                     return { cls: "text-green-600 font-semibold", label: "OK" };
                 case "△":
                     return { cls: "text-yellow-700 font-semibold", label: "苦手" };
@@ -91,14 +267,87 @@
                     return { cls: "text-red-600 font-bold", label: "NG" };
                 case "－":
                 case "-":
-                    return { cls: "text-gray-400", label: "不明" };
+                    return { cls: "text-gray-500", label: "不明" };
                 default:
-                    return { cls: "text-gray-400", label: "不明" };
+                    return { cls: "text-gray-500", label: "不明" };
             }
         }
 
+        function formatNow() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, "0");
+            const d = String(now.getDate()).padStart(2, "0");
+            const h = String(now.getHours()).padStart(2, "0");
+            const min = String(now.getMinutes()).padStart(2, "0");
+            return `${y}/${m}/${d} ${h}:${min}`;
+        }
 
-        // APIを叩いて表を描画
+        function updatePrintMeta(data) {
+            printDate.textContent = `印刷日時：${formatNow()}`;
+
+            if (!data || !data.drugs || data.drugs.length === 0) {
+                printDrugSummary.textContent = "";
+                return;
+            }
+
+            const drugNames = data.drugs.map(d => d.name);
+            printDrugSummary.textContent = `対象薬剤：${drugNames.join(" / ")}`;
+        }
+
+        function buildHeaderRow(data) {
+            const headerRow = document.createElement("tr");
+
+            const cornerTh = document.createElement("th");
+            cornerTh.className = "border px-2 py-2 text-xs bg-gray-50";
+            cornerTh.textContent = "飲食物";
+            headerRow.appendChild(cornerTh);
+
+            for (const drug of data.drugs) {
+                const th = document.createElement("th");
+                th.className = "border px-2 py-2 text-xs bg-gray-50";
+                th.textContent = drug.name;
+                headerRow.appendChild(th);
+            }
+
+            return headerRow;
+        }
+
+        function buildBodyRows(data) {
+            for (const food of data.foods) {
+                const tr = document.createElement("tr");
+
+                const foodTd = document.createElement("td");
+                foodTd.className = "border px-2 py-2 text-xs font-semibold whitespace-nowrap food-name";
+                foodTd.textContent = food;
+                tr.appendChild(foodTd);
+
+                for (const drug of data.drugs) {
+                    const td = document.createElement("td");
+                    td.className = "border px-2 py-2 text-center text-sm";
+
+                    const info = (drug.results && drug.results[food]) ? drug.results[food] : null;
+                    const symbol = info && info.result ? info.result : "－";
+                    const { cls, label } = styleFor(symbol);
+
+                    td.innerHTML = `
+                        <div class="leading-tight ${cls}">
+                            <div class="text-lg cell-symbol">${symbol}</div>
+                            <div class="text-[10px] font-normal text-gray-600 cell-label">${label}</div>
+                        </div>
+                    `;
+
+                    if (info && info.note) {
+                        td.title = info.note;
+                    }
+
+                    tr.appendChild(td);
+                }
+
+                tbody.appendChild(tr);
+            }
+        }
+
         async function runSearch() {
             const input = drugInput.value.trim();
 
@@ -109,7 +358,6 @@
                 return;
             }
 
-            // ここが重要：パラメータ名は drugs
             const url = `/api/search?drugs=${encodeURIComponent(input)}`;
 
             let data;
@@ -122,89 +370,34 @@
                 return;
             }
 
-            // 見つからなかった薬名
             if (data.not_found && data.not_found.length > 0) {
                 message.textContent = `見つからなかった薬名: ${data.not_found.join(" / ")}`;
             }
 
-            // 結果ゼロ
             if (!data.drugs || data.drugs.length === 0) {
-                if (!message.textContent) message.textContent = "該当するデータがありません。";
+                if (!message.textContent) {
+                    message.textContent = "該当するデータがありません。";
+                }
                 return;
             }
 
-            // ====== ここから「表描画」を反転版に置き換え ======
-
-            // ====== ここから「表描画」を反転版に置き換え ======
-
-            // ヘッダ行：左上は「飲食物 \\ 薬名」、右に薬名
-            const headerRow = document.createElement("tr");
-
-            const cornerTh = document.createElement("th");
-            cornerTh.className = "border px-2 py-2 text-xs bg-gray-50 whitespace-nowrap";
-            cornerTh.textContent = "飲食物 \\ 薬名";
-            headerRow.appendChild(cornerTh);
-
-            // 列：薬名
-            for (const drug of data.drugs) {
-                const th = document.createElement("th");
-                th.className = "border px-2 py-2 text-xs bg-gray-50 whitespace-nowrap";
-                th.textContent = drug.name;
-                headerRow.appendChild(th);
-            }
-
-            thead.appendChild(headerRow);
-
-            // 本文：飲食物ごとに1行
-            for (const food of data.foods) {
-                const tr = document.createElement("tr");
-
-                // 行見出し（飲食物名）
-                const foodTd = document.createElement("td");
-                foodTd.className = "border px-2 py-2 text-xs font-semibold whitespace-nowrap";
-                foodTd.textContent = food;
-                tr.appendChild(foodTd);
-
-                // 各薬のセル（その飲食物に対する判定）
-                for (const drug of data.drugs) {
-                    const td = document.createElement("td");
-                    td.className = "border px-2 py-2 text-center text-sm";
-
-                    const info = (drug.results && drug.results[food]) ? drug.results[food] : null;
-                    const symbol = info && info.result ? info.result : "－"; // データなしは － に統一
-
-                    const { cls, label } = styleFor(symbol);
-
-                    // 記号（大きめ）＋ラベル（小さめ）を縦に並べる
-                    td.innerHTML = `
-                        <div class="leading-tight ${cls}">
-                            <div class="text-lg">${symbol}</div>
-                            <div class="text-[10px] font-normal text-gray-600">${label}</div>
-                        </div>
-                    `;
-
-                    // noteがあるならタップ/ホバー用
-                    if (info && info.note) td.title = info.note;
-
-                    
-
-                    tr.appendChild(td);
-                }
-
-                tbody.appendChild(tr);
-            }
+            thead.appendChild(buildHeaderRow(data));
+            buildBodyRows(data);
 
             table.classList.remove("hidden");
+            lastResultData = data;
+            updatePrintMeta(data);
+
+            if (data.drugs.length >= 6) {
+                const extra = " 薬の数が多いため、印刷時に1ページに収まらない可能性があります。";
+                message.textContent = (message.textContent || "") + extra;
+            }
         }
-        // ====== ここまで ======
 
-
-        // クリックで検索
         searchBtn.addEventListener("click", () => {
             runSearch();
         });
 
-        // クリア
         clearBtn.addEventListener("click", () => {
             drugInput.value = "";
             resetView();
@@ -212,12 +405,20 @@
             drugInput.focus();
         });
 
-        // 入力中も検索（デバウンス：打鍵のたびに叩きすぎない）
+        printBtn.addEventListener("click", () => {
+            if (!lastResultData || !lastResultData.drugs || lastResultData.drugs.length === 0) {
+                message.textContent = "印刷する前に検索結果を表示してください。";
+                return;
+            }
+
+            updatePrintMeta(lastResultData);
+            window.print();
+        });
+
         let timer = null;
         drugInput.addEventListener("input", () => {
             if (timer) clearTimeout(timer);
             timer = setTimeout(() => {
-                // 空なら表示だけ整える
                 if (!drugInput.value.trim()) {
                     resetView();
                     return;

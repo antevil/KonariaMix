@@ -24,6 +24,10 @@ def hira_to_kata(text):
 def index():
     return render_template("index.html")
 
+@app.route("/references")
+def references():
+    return render_template("references.html")
+
 @app.route("/api/search")
 def api_search():
     # 入力（スペース/改行/カンマ区切りで複数OK）
